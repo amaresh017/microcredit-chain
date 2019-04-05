@@ -15,37 +15,86 @@
 /**
  * Sample access control list.
  */
-rule EveryBankCanReadEverything {
-    description: "Allow all participants read access to all resources"
-    participant: "org.microcredit.biznet.Bank"
-    operation: READ
-    resource: "org.microcredit.biznet.*"
+
+rule BankManageThemselvesOnlyAccess {
+    description: "A bank can manage their own record only"
+    participant(p): "org.microcredit.biznet.Bank"
+    operation: ALL
+    resource(r): "org.microcredit.biznet.Bank"
+    condition: (p.getIdentifier() == r.getIdentifier())
     action: ALLOW
 }
 
-rule EveryCustomerCanReadEverything {
-    description: "Allow all participants read access to all resources"
-    participant: "org.microcredit.biznet.Customer"
-    operation: READ
-    resource: "org.microcredit.biznet.*"
-    action: ALLOW
-}
-
-rule EveryCustomerCanSubmitTransactions {
-    description: "Allow all participants to submit transactions"
-    participant: "org.microcredit.biznet.Customer"
-    operation: CREATE
-    resource: "org.microcredit.biznet.CreditAssessment"
-    action: ALLOW
-}
-
-rule OwnerHasFullAccessToTheirAssets {
-    description: "Allow all participants full access to their assets"
+rule CustomerManageThemselvesOnlyAccess {
+    description: "A customer can manage their own record only"
     participant(p): "org.microcredit.biznet.Customer"
     operation: ALL
-    resource(r): "org.microcredit.biznet.CreditAssessment"
-    condition: (r.applier.getIdentifier() === p.getIdentifier())
+    resource(r): "org.microcredit.biznet.Customer"
+    condition: (p.getIdentifier() == r.getIdentifier())
     action: ALLOW
+}
+
+rule ThirdPartyManageThemselvesOnlyAccess {
+    description: "A third party can manage their own record only"
+    participant(p): "org.microcredit.biznet.ThirdParty"
+    operation: ALL
+    resource(r): "org.microcredit.biznet.ThirdParty"
+    condition: (p.getIdentifier() == r.getIdentifier())
+    action: ALLOW
+}
+
+rule BankManageTheirBankTransactionsOnlyAccess {
+    description: "A bank can manage their own Bank Transactions only"
+    participant(p): "org.microcredit.biznet.Bank"
+    operation: ALL
+    resource(r): "org.microcredit.biznet.BankTransaction"
+    condition: (p.getIdentifier() == r.bank.getIdentifier())
+    action: ALLOW
+}
+
+rule CustomerSeeTheirBankTransactionsOnlyAccess {
+    description: "A customer can see their own Bank Transactions only"
+    participant(p): "org.microcredit.biznet.Customer"
+    operation: READ
+    resource(r): "org.microcredit.biznet.BankTransaction"
+    condition: (p.getIdentifier() == r.customer.getIdentifier())
+    action: ALLOW
+}
+
+rule BankManageTheirAssessmentOnlyAccess {
+    description: "A bank can manage their own credit assessment only"
+    participant(p): "org.microcredit.biznet.Bank"
+    operation: ALL
+    resource(r): "org.microcredit.biznet.CreditAssessment"
+    condition: (p.getIdentifier() == r.assessor.getIdentifier())
+    action: ALLOW    
+}
+
+rule CustomerSeeTheirAssessmentOnlyAccess {
+    description: "A customer can see their own credit assessment only"
+    participant(p): "org.microcredit.biznet.Customer"
+    operation: READ
+    resource(r): "org.microcredit.biznet.CreditAssessment"
+    condition: (p.getIdentifier() == r.applier.getIdentifier())
+    action: ALLOW 
+}
+
+rule ThirdPartySeeAuthorizedAssessmentOnlyAccess {
+    description: "A third party can see credit assessment authorized to them only"
+    participant(p): "org.microcredit.biznet.ThirdParty"
+    operation: READ
+    resource(r): "org.microcredit.biznet.CreditAssessment"
+    condition: (r.authoizedViewers.indexOf(p.getIdentifier()) > -1)
+    action: ALLOW 
+}
+
+rule ParticipantsSeeTheirHistoryOnly {
+    description: "Participants should be able to see the history of their own transactions only"
+    participant(p): "ANY"
+    operation: READ
+    resource(v): "org.hyperledger.composer.system.HistorianRecord"
+    condition: (v.participantInvoking.getIdentifier() != p.getIdentifier())
+    action: DENY
 }
 
 rule SystemACL {

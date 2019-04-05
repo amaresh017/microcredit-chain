@@ -13,15 +13,19 @@
  */
 
 /**
- * A business network where a customer can apply for a micro lending to different banks.
+ * A business network where a customer is assessed by banks for a micro lending.
  */
 
 namespace org.microcredit.biznet
 
+
+/*** Participants definition ***/
 participant Bank identified by swiftId {
   o String swiftId
   o String fullName
   o String code
+  o Double credibilityRating
+  o String address optional
 }
 
 participant Customer identified by panNumber {
@@ -31,19 +35,23 @@ participant Customer identified by panNumber {
   o String lastName
 }
 
-participant ThirdPartyUser identified by email {
+participant ThirdParty identified by email {
   o String email
   o String firstName
   o String lastName
-  o String businessDetails
+  o String contact
+  o String businessDetail optional
+  o String address optional
 }
 
-/* Assets definition */
+/*** Assets definition ***/
 asset BankTransaction identified by bankTransactionId {
   o String bankTransactionId
   --> Bank bank
+  --> Customer customer
   o String tnxType
-  o String otherDetails optional
+  o Double ammount
+  o String additionalDetail optional
 }
 
 asset CustomerProfile identified by customerProfileId {
@@ -51,6 +59,7 @@ asset CustomerProfile identified by customerProfileId {
   --> Customer customer
   o Double creditScore
   o String dob
+  o String contact
   o String currentAddress
   o String permanentAddress
 }
@@ -60,19 +69,16 @@ asset CreditAssessment identified by creditAssessmentId {
   --> Customer applier
   --> Bank assessor
   --> CreditAssessment previousAssessment optional
-  o Double weightage
-  o Double spendingHistoryScore
+  o Double loanAmount optional
   o Double assessedScore
-  --> ThirdPartyUser[] authorizedViewers optional
+  o String[] authorizedViewers optional
 }
 
-/* Transactions definition */
+/*** Transactions definition ***/
 abstract transaction CreditAssessmentTransaction {
   --> Customer applier
   --> Bank assessor
-  o Double weightage
-  o Double spendingHistoryScore
-  o String additionalDetails
+  o Double loanAmount
 }
 
 transaction NewCreditAssessment extends CreditAssessmentTransaction {
@@ -86,10 +92,24 @@ transaction ReviewCreditAssessment extends CreditAssessmentTransaction {
 
 transaction NewBankTransaction {
   --> Bank bank
+  --> Customer customer
   o String tnxType
-  o String otherDetails
+  o Double amount
+  o String additionalDetail
 }
 
+abstract transaction ThirdPartyAccess {
+  --> CreditAssessment creditAssessment
+  --> ThirdParty thirdParty
+}
+
+transaction AllowThirdPartyAccess extends ThirdPartyAccess {
+}
+
+transaction RevokeThirdPartyAccess extends ThirdPartyAccess {
+}
+
+/*** Events definition ***/
 event NewCreditAssessmentEvent {
   --> CreditAssessment newAssessment
   --> Customer customer
@@ -97,7 +117,7 @@ event NewCreditAssessmentEvent {
 }
 
 event ReviewCreditAssessmentEvent {
-  --> CreditAssessment reviewAssessment
+  --> CreditAssessment reviewedAssessment
   --> Customer customer
   o Double oldCreditScore
   o Double newCreditScore
@@ -105,4 +125,9 @@ event ReviewCreditAssessmentEvent {
 
 event BankTransactionEvent {
   --> BankTransaction bankTransaction
+}
+
+event ThirdPartyAccessGrantEvent {
+  --> CreditAssessment creditAssessment
+  --> ThirdParty thirdParty
 }
